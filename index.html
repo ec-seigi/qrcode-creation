@@ -264,13 +264,14 @@
             </div>
           </div>
 
-          <div class="field-group" style="flex: 1; max-width: 160px;">
+          <div class="field-group" style="flex: 1; max-width: 180px;">
             <div style="display: flex; justify-content: space-between;">
               <span class="field-label">文字サイズ</span>
-              <span id="font-size-val" class="field-label">16px</span>
+              <span id="font-size-val" class="field-label">20px</span>
             </div>
             <div class="range-wrap">
-              <input type="range" id="font-size-slider" min="12" max="32" value="16" step="1">
+              <!-- 上限を48pxまで拡張 -->
+              <input type="range" id="font-size-slider" min="12" max="48" value="20" step="1">
             </div>
           </div>
         </div>
@@ -312,8 +313,8 @@
 <div id="hidden-qr-render" style="display: none;"></div>
 
 <script>
-  // デフォルトのBox風SVGアイコン
-  const DEFAULT_BOX_SVG = 'box-logo.png' + encodeURIComponent(`
+  // 内蔵SVGフォールバック（ファイルがなくても動く予備データ）
+  const INLINE_BOX_SVG = 'data:image/svg+xml;utf8,' + encodeURIComponent(`
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
       <rect width="100" height="100" rx="20" fill="#0061D5" />
       <path d="M50 22 L75 35 L75 65 L50 78 L25 65 L25 35 Z" fill="none" stroke="#FFFFFF" stroke-width="7" stroke-linejoin="round"/>
@@ -323,7 +324,9 @@
     </svg>
   `);
 
-  let currentIconData = DEFAULT_BOX_SVG;
+  // デフォルト指定画像（同一フォルダに box-logo.png を配置してください）
+  const TARGET_IMAGE_FILE = 'box-logo.png';
+  let currentIconData = TARGET_IMAGE_FILE;
 
   // DOM要素
   const urlInput = document.getElementById('url-input');
@@ -361,7 +364,25 @@
   const hiddenHolder = document.getElementById('hidden-qr-render');
   qrEngine.append(hiddenHolder);
 
-  // 独自画像の読み込みイベント
+  // 指定画像が存在するかチェックし、無ければ内蔵SVGに切り替える処理
+  const testImg = new Image();
+  testImg.onload = () => {
+    // box-logo.png の読み込みに成功
+    currentIconData = TARGET_IMAGE_FILE;
+    iconNameDisplay.innerText = `規定アイコン: ${TARGET_IMAGE_FILE}`;
+    iconNameDisplay.style.display = 'block';
+    renderAll();
+  };
+  testImg.onerror = () => {
+    // ローカル実行でCORSエラーになったり画像が無い場合は内蔵SVGへフォールバック
+    currentIconData = INLINE_BOX_SVG;
+    iconNameDisplay.innerText = `※ ${TARGET_IMAGE_FILE} 未検出のため内蔵ロゴを適用中`;
+    iconNameDisplay.style.display = 'block';
+    renderAll();
+  };
+  testImg.src = TARGET_IMAGE_FILE;
+
+  // 独自画像の読み込みイベント（ユーザーが手動で画像を選択した場合）
   customIconFile.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -474,7 +495,7 @@
 
       // QRコードを中央に描画
       outCtx.drawImage(qrCanvasElem, padding, qrY, qrWidth, qrWidth);
-    }, 60);
+    }, 70);
   }
 
   // イベントリスナー
