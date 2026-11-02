@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QRコード簡単作成</title>
+  <!-- 高精度QRコード描画ライブラリ -->
+  <script src="https://unpkg.com/qr-code-styling@1.5.0/lib/qr-code-styling.js"></script>
+  <style>
+    :root {
+      --primary: #0061d5;
+      --primary-hover: #004fb3;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --border: #cbd5e1;
+      --text: #0f172a;
+      --text-sub: #64748b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .app-card {
+      background: var(--card);
+      width: 100%;
+      max-width: 840px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      overflow: hidden;
+    }
+
+    /* 左側設定パネル */
+    .controls-panel {
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .app-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-sub);
+    }
+
+    .input-text {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .input-text:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(0, 97, 213, 0.1);
+    }
+
+    /* セクションブロック */
+    .section-box {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      padding: 12px 14px;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .checkbox-label input {
+      accent-color: var(--primary);
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+
+    .sub-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding-top: 4px;
+      border-top: 1px dashed var(--border);
+    }
+
+    .sub-controls.disabled {
+      opacity: 0.45;
+      pointer-events: none;
+    }
+
+    .radio-group {
+      display: flex;
+      gap: 16px;
+      font-size: 0.85rem;
+    }
+
+    .radio-group label {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+    }
+
+    .range-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .range-wrap input[type="range"] {
+      flex: 1;
+      accent-color: var(--primary);
+    }
+
+    .file-input-btn {
+      font-size: 0.8rem;
+      padding: 4px 8px;
+      background: #e2e8f0;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      cursor: pointer;
+      width: fit-content;
+    }
+
+    /* ボタン群 */
+    .action-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: auto;
+      padding-top: 10px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 11px 14px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.2s, transform 0.05s;
+    }
+
+    .btn:active { transform: scale(0.98); }
+
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); }
+
+    .btn-secondary { background: #e2e8f0; color: var(--text); }
+    .btn-secondary:hover { background: #cbd5e1; }
+
+    /* 右側プレビュー */
+    .preview-panel {
+      background: #f1f5f9;
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .canvas-wrapper {
+      background: #ffffff;
+      padding: 16px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    canvas {
+      display: block;
+      max-width: 100%;
+      height: auto;
+    }
+
+    .status-msg {
+      font-size: 0.8rem;
+      color: var(--text-sub);
+      margin-top: 12px;
+      min-height: 1.2em;
+    }
+
+    @media (max-width: 720px) {
+      .app-card { grid-template-columns: 1fr; }
+      .preview-panel { border-left: none; border-top: 1px solid var(--border); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-card">
+  <!-- 操作パネル -->
+  <div class="controls-panel">
+    <div class="app-title">QRコード作成</div>
+
+    <!-- URL入力 -->
+    <div class="field-group">
+      <label class="field-label" for="url-input">URL または 文字列</label>
+      <input type="text" id="url-input" class="input-text" placeholder="https://example.com" autofocus>
+    </div>
+
+    <!-- ラベル設定 -->
+    <div class="section-box">
+      <label class="checkbox-label">
+        <input type="checkbox" id="label-enable-check">
+        <span>説明用ラベルを付ける</span>
+      </label>
+
+      <div id="label-sub-controls" class="sub-controls disabled">
+        <div class="field-group">
+          <input type="text" id="label-text-input" class="input-text" placeholder="ラベルの内容を入力してください">
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+          <div class="field-group">
+            <span class="field-label">配置位置</span>
+            <div class="radio-group">
+              <label><input type="radio" name="label-pos" value="top" checked> 上部</label>
+              <label><input type="radio" name="label-pos" value="bottom"> 下部</label>
+            </div>
+          </div>
+
+          <div class="field-group" style="flex: 1; max-width: 160px;">
+            <div style="display: flex; justify-content: space-between;">
+              <span class="field-label">文字サイズ</span>
+              <span id="font-size-val" class="field-label">16px</span>
+            </div>
+            <div class="range-wrap">
+              <input type="range" id="font-size-slider" min="12" max="32" value="16" step="1">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- アイコン設定 -->
+    <div class="section-box">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <label class="checkbox-label">
+          <input type="checkbox" id="box-icon-check" checked>
+          <span>Boxアイコンを中央に配置</span>
+        </label>
+        <!-- 独自画像選択ボタン -->
+        <label class="file-input-btn">
+          画像変更
+          <input type="file" id="custom-icon-file" accept="image/*" style="display: none;">
+        </label>
+      </div>
+      <div id="icon-name-display" style="font-size: 0.75rem; color: var(--text-sub); display: none;"></div>
+    </div>
+
+    <div class="action-buttons">
+      <button class="btn btn-secondary" onclick="copyResult()">画像コピー</button>
+      <button class="btn btn-primary" onclick="downloadResult()">PNG保存</button>
+    </div>
+  </div>
+
+  <!-- プレビュー -->
+  <div class="preview-panel">
+    <div class="canvas-wrapper">
+      <canvas id="output-canvas"></canvas>
+    </div>
+    <div id="status-msg" class="status-msg"></div>
+  </div>
+</div>
+
+<!-- QR生成用一時コンテナ（非表示） -->
+<div id="hidden-qr-render" style="display: none;"></div>
+
+<script>
+  // デフォルトのBox風SVGアイコン
+  const DEFAULT_BOX_SVG = 'box-logo.png' + encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+      <rect width="100" height="100" rx="20" fill="#0061D5" />
+      <path d="M50 22 L75 35 L75 65 L50 78 L25 65 L25 35 Z" fill="none" stroke="#FFFFFF" stroke-width="7" stroke-linejoin="round"/>
+      <path d="M50 22 L50 78" stroke="#FFFFFF" stroke-width="7"/>
+      <path d="M50 50 L75 35" stroke="#FFFFFF" stroke-width="7"/>
+      <path d="M50 50 L25 35" stroke="#FFFFFF" stroke-width="7"/>
+    </svg>
+  `);
+
+  let currentIconData = DEFAULT_BOX_SVG;
+
+  // DOM要素
+  const urlInput = document.getElementById('url-input');
+  const labelEnableCheck = document.getElementById('label-enable-check');
+  const labelSubControls = document.getElementById('label-sub-controls');
+  const labelTextInput = document.getElementById('label-text-input');
+  const fontSizeSlider = document.getElementById('font-size-slider');
+  const fontSizeVal = document.getElementById('font-size-val');
+  const boxIconCheck = document.getElementById('box-icon-check');
+  const customIconFile = document.getElementById('custom-icon-file');
+  const iconNameDisplay = document.getElementById('icon-name-display');
+  const outputCanvas = document.getElementById('output-canvas');
+  const outCtx = outputCanvas.getContext('2d');
+  const statusMsg = document.getElementById('status-msg');
+
+  const QR_RAW_SIZE = 260;
+
+  // QRコード描画用インスタンス（誤り訂正H固定）
+  const qrEngine = new QRCodeStyling({
+    width: QR_RAW_SIZE,
+    height: QR_RAW_SIZE,
+    type: "canvas",
+    data: "https://example.com",
+    image: currentIconData,
+    dotsOptions: { color: "#0f172a", type: "rounded" },
+    backgroundOptions: { color: "#ffffff" },
+    imageOptions: {
+      crossOrigin: "anonymous",
+      margin: 4,
+      imageSize: 0.3
+    },
+    qrOptions: { errorCorrectionLevel: "H" }
+  });
+
+  const hiddenHolder = document.getElementById('hidden-qr-render');
+  qrEngine.append(hiddenHolder);
+
+  // 独自画像の読み込みイベント
+  customIconFile.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      currentIconData = event.target.result;
+      iconNameDisplay.innerText = `適用中: ${file.name}`;
+      iconNameDisplay.style.display = 'block';
+      boxIconCheck.checked = true;
+      renderAll();
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // テキスト自動改行計算（Canvas計測）
+  function getWrappedLines(text, maxWidth, ctx, fontSize) {
+    ctx.font = `bold ${fontSize}px sans-serif`;
+    const lines = [];
+    const paragraphs = text.split('\n');
+
+    for (const para of paragraphs) {
+      if (para === '') {
+        lines.push('');
+        continue;
+      }
+      let currentLine = '';
+      for (const char of para) {
+        const testLine = currentLine + char;
+        if (ctx.measureText(testLine).width > maxWidth && currentLine.length > 0) {
+          lines.push(currentLine);
+          currentLine = char;
+        } else {
+          currentLine = testLine;
+        }
+      }
+      if (currentLine) lines.push(currentLine);
+    }
+    return lines;
+  }
+
+  // 全体合成レンダリング
+  async function renderAll() {
+    const rawUrl = urlInput.value.trim();
+    const targetUrl = rawUrl || "https://example.com";
+    const useIcon = boxIconCheck.checked;
+    const isLabelOn = labelEnableCheck.checked;
+    const labelText = labelTextInput.value;
+    const labelPos = document.querySelector('input[name="label-pos"]:checked').value;
+    const fontSize = parseInt(fontSizeSlider.value, 10);
+
+    // QR再生成
+    await qrEngine.update({
+      data: targetUrl,
+      image: useIcon ? currentIconData : ""
+    });
+
+    // 内部レンダリング待機
+    setTimeout(() => {
+      const qrCanvasElem = hiddenHolder.querySelector('canvas');
+      if (!qrCanvasElem) return;
+
+      const padding = 16;
+      const qrWidth = QR_RAW_SIZE;
+      const textMaxWidth = qrWidth;
+
+      let labelLines = [];
+      let textBlockHeight = 0;
+      const lineHeight = fontSize * 1.35;
+
+      if (isLabelOn && labelText.trim() !== '') {
+        labelLines = getWrappedLines(labelText, textMaxWidth, outCtx, fontSize);
+        textBlockHeight = (labelLines.length * lineHeight) + 12; // ラベルとQRの間隔
+      }
+
+      const totalWidth = qrWidth + (padding * 2);
+      const totalHeight = qrWidth + (padding * 2) + textBlockHeight;
+
+      outputCanvas.width = totalWidth;
+      outputCanvas.height = totalHeight;
+
+      // 背景白塗り
+      outCtx.fillStyle = '#ffffff';
+      outCtx.fillRect(0, 0, totalWidth, totalHeight);
+
+      let qrY = padding;
+      let textStartY = padding + fontSize;
+
+      if (isLabelOn && labelLines.length > 0) {
+        if (labelPos === 'top') {
+          // 上部ラベル
+          qrY = padding + textBlockHeight;
+          textStartY = padding + fontSize;
+        } else {
+          // 下部ラベル
+          qrY = padding;
+          textStartY = padding + qrWidth + 12 + fontSize;
+        }
+
+        // テキスト描画
+        outCtx.fillStyle = '#0f172a';
+        outCtx.font = `bold ${fontSize}px sans-serif`;
+        outCtx.textAlign = 'center';
+
+        const textCenterX = totalWidth / 2;
+        labelLines.forEach((line, index) => {
+          outCtx.fillText(line, textCenterX, textStartY + (index * lineHeight));
+        });
+      }
+
+      // QRコードを中央に描画
+      outCtx.drawImage(qrCanvasElem, padding, qrY, qrWidth, qrWidth);
+    }, 60);
+  }
+
+  // イベントリスナー
+  urlInput.addEventListener('input', renderAll);
+
+  labelEnableCheck.addEventListener('change', () => {
+    if (labelEnableCheck.checked) {
+      labelSubControls.classList.remove('disabled');
+    } else {
+      labelSubControls.classList.add('disabled');
+    }
+    renderAll();
+  });
+
+  labelTextInput.addEventListener('input', renderAll);
+
+  document.querySelectorAll('input[name="label-pos"]').forEach(radio => {
+    radio.addEventListener('change', renderAll);
+  });
+
+  fontSizeSlider.addEventListener('input', (e) => {
+    fontSizeVal.innerText = `${e.target.value}px`;
+    renderAll();
+  });
+
+  boxIconCheck.addEventListener('change', renderAll);
+
+  // 保存処理
+  function downloadResult() {
+    const link = document.createElement('a');
+    link.download = 'qrcode.png';
+    link.href = outputCanvas.toDataURL('image/png');
+    link.click();
+  }
+
+  // クリップボードコピー
+  async function copyResult() {
+    try {
+      outputCanvas.toBlob(async (blob) => {
+        await navigator.clipboard.write([
+          new ClipboardItem({ 'image/png': blob })
+        ]);
+        showStatus('クリップボードに画像をコピーしました');
+      });
+    } catch (err) {
+      showStatus('コピーに失敗しました（保存ボタンをご利用ください）');
+    }
+  }
+
+  function showStatus(text) {
+    statusMsg.innerText = text;
+    setTimeout(() => { statusMsg.innerText = ''; }, 3000);
+  }
+
+  // 初期描画
+  renderAll();
+</script>
+</body>
+</html>
